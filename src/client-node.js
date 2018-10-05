@@ -7,11 +7,13 @@ const { createInitialBlock,
 const { randomNumb } = require('./util')
 const { format } = require('date-fns')
 
-const ledger = [
+let ledger = [
     createInitialBlock()
 ]
 
 let balance = randomNumb(0, 100)
+let votes = new Map()
+let connectedNodes = []
 
 portfinder
     .getPortPromise()
@@ -19,24 +21,62 @@ portfinder
         console.log('Initializing Node on port: ' + port)
         io.on('connect', client => {
             console.log('Client connected')
-        
+            const host = client.handshake.headers.host
+            const [ _, portStr ] = host.split(':')
+
+            if (parseInt(portStr) !== port) {
+              connectedNodes.push(client)
+              console.warn('Connected Nodes: ' + connectedNodes.length)
+            }
+
             client.on('connect_to', (msg) => {
                 const dst = JSON.parse(msg).data
                 console.log('Connecting to ' + dst)
                 const socket = ioClient("http://localhost:" + dst)
-    
+                
                 socket.on('connect', () => {
-                    console.log('Connected ' + port + '->' + dst)
-                })
+                  console.log('Connected ' + port + '->' + dst)
+                  connectedNodes.push(socket)
+                  console.warn('Connected Nodes: ' + connectedNodes.length)
+
+                })            
             })
 
             client.on('transfer', (msg) => {
+                console.warn('Transfer ', msg)
                 const { amount, to } = JSON.parse(msg).data
-                client.broadcast.emit('mine', JSON.stringify({ data: {
+                console.warn('Sending messages to nodes: ' + connectedNodes.length)
+                
+                connectedNodes.forEach(s => s.emit('mine', JSON.stringify({
+                  data: {
                     from: port,
                     to,
                     amount
-                }}))
+                  }
+                })))
+            })
+
+            client.on('newBlock', (msg) => {
+              votes = new Map()
+              console.warn('[NEW BLOCK] new block ', msg)
+              const { completeBlock } = JSON.parse(msg)
+              const resolveLedger = () => {
+                const possibleLedger = [...ledger, completeBlock]
+                if (true) {
+                  return completeBlock.nonce
+                }
+              }
+
+              console.log(client.server.clients())
+              connectedNodes.forEach(s => s.emit('declareLedger', JSON.stringify(resolveLedger)))
+            })
+
+            client.on('declareLedger', (msg) => {
+              if (votes.length === connectedNodes.length) {
+                console.warn(votes)
+              }
+
+              votes.set(msg.data, (votes.get(msg.data) || 0) + 1)
             })
 
             client.on('mine', (msg) => {
@@ -46,12 +86,16 @@ portfinder
                     data: { type: 'transfer', from, amount, to }
                 })
 
-                console.log('Started proof of work ' + format(new Date(), 'mm:SS'))
+                console.log('[PROOF OF WORK] Started proof of work ' + format(new Date(), 'mm:SS'))
                 const [ nonce, hash ] = proofOfWork(block)
                 
                 console.log('[PROOF OF WORK] Client ' + port + ': Got it!')
                 console.log('[PROOF OF WORK] Broadcast solution: ' + nonce)
 
+                const completeBlock = Object.assign({}, block, { nonce, hash })
+                const message = { completeBlock }
+
+                connectedNodes.forEach(s => s.emit('newBlock', JSON.stringify(message)))
             })
 
             client.on('disconnect', () => {

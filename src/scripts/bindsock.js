@@ -4,7 +4,10 @@ const [ src, dst, ..._ ] = process.argv.splice(2)
 
 const sock = ioClient('http://localhost:' + src)
 
-sock.emit('connect_to', JSON.stringify({ data: parseInt(dst) }), () => {
+sock.emit('connect_to', JSON.stringify({ 
+    name: 'remote',
+    data: parseInt(dst),
+}), () => {
     sock.close()
 })
 
