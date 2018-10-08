@@ -50,7 +50,7 @@ portfinder
             })
 
             socket.on('declareLedger', (msg) => {
-              const newLedger = [ ...ledger, JSON.stringify(msg) ]
+              const newLedger = [ ...ledger, ...JSON.parse(msg) ]
               ledger = newLedger
               console.log('UPDATED LEDGER')
               console.warn('==== BLOCKCHAIN ====')
@@ -93,13 +93,12 @@ portfinder
               return false
             }
 
-            const newLedger = resolveLedger()
+            let newLedger = resolveLedger()
 
             if (newLedger) {
               logConnectedNodes()
               connectedNodes.forEach((s) => {
                 s.emit('declareLedger', JSON.stringify(newLedger))
-                const newLedger = [ ...ledger, JSON.stringify(msg) ]
                 ledger = newLedger
                 console.log('UPDATED LEDGER')
                 console.warn('==== BLOCKCHAIN ====')
