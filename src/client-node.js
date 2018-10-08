@@ -50,10 +50,14 @@ portfinder
             })
 
             socket.on('declareLedger', (msg) => {
-              console.log('12312312312 ' + connectedNodes.size)
               const newLedger = [ ...ledger, JSON.stringify(msg) ]
               ledger = newLedger
               console.log('UPDATED LEDGER')
+              console.warn('==== BLOCKCHAIN ====')
+              console.warn(ledger)
+              console.warn('==== ========== ====')
+              console.warn('MY WALLET: ', balance)
+              console.warn('==== ========== ====')
             })
 
             socket.on('disconnect', () => {
@@ -94,7 +98,15 @@ portfinder
             if (newLedger) {
               logConnectedNodes()
               connectedNodes.forEach((s) => {
-                s.emit('declareLedger', JSON.stringify())
+                s.emit('declareLedger', JSON.stringify(newLedger))
+                const newLedger = [ ...ledger, JSON.stringify(msg) ]
+                ledger = newLedger
+                console.log('UPDATED LEDGER')
+                console.warn('==== BLOCKCHAIN ====')
+                console.warn(ledger)
+                console.warn('==== ========== ====')
+                console.warn('MY WALLET: ', balance)
+                console.warn('==== ========== ====')
               })
             }
           })

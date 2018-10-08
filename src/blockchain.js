@@ -54,21 +54,19 @@ const newBlockFromLedger = (ledger) => {
 const checkLedger = ledger => {
     let altered = false
     console.log('Checkin Ledger >>> ', ledger)
-    for (let b of ledger) {
-        let hash = calcHash(b.data, b.nonce)
+    for (let i in ledger) {
+        let hash = calcHash(ledger[i].prev + JSON.stringify(ledger[i].data), ledger[i].nonce)
 
         try {
             let hashNext = calcHash(
-                hash + ledger[b.id].data, 
-                ledger[b.id].nonce
+                hash + JSON.stringify(ledger[i + 1].data), 
+                ledger[i + 1].nonce
             )
 
-            if (!(ledger[b.id].hash === hashNext) || altered) {
+            if (!(ledger[i + 1].hash === hashNext) || altered) {
                 altered = true
             }
-            else {
-                
-            }
+            
 
         }
         catch (err) {
