@@ -11,9 +11,17 @@ const initialBlock = {
 
 const calcHash = (data, nonce) => new sha256().update(data + nonce.toString()).digest('hex')
 
-const proofOfWork = (blockData) => {
+const proofOfWork = (block) => {
+    const solveData = (data) => {
+        if (typeof data === 'object') {
+            return JSON.stringify(data)
+        }
+
+        return data
+    }
+
     for (let i = 0; i < 100000000; i++) {
-        let hash = calcHash(blockData, i)
+        let hash = calcHash(block.prev + solveData, i)
         if (/^0000/.test(hash)) {
             return [i, hash]
         }
@@ -42,8 +50,39 @@ const newBlockFromLedger = (ledger) => {
     }
 }
 
+
+const checkLedger = ledger => {
+    let altered = false
+    console.log('Checkin Ledger >>> ', ledger)
+    for (let b of ledger) {
+        let hash = calcHash(b.data, b.nonce)
+
+        try {
+            let hashNext = calcHash(
+                hash + ledger[b.id].data, 
+                ledger[b.id].nonce
+            )
+
+            if (!(ledger[b.id].hash === hashNext) || altered) {
+                altered = true
+            }
+            else {
+                
+            }
+
+        }
+        catch (err) {
+            console.warn(err)
+        }
+
+        return !altered
+        
+    }
+}
+
 module.exports = {
     createInitialBlock,
     proofOfWork,
-    newBlockFromLedger
+    newBlockFromLedger,
+    checkLedger
 }
